@@ -1,0 +1,6 @@
+{
+  "name": "SentinelPack",
+  "description": "Intelligent Smart Packaging & Digital Chain of Custody Proof-of-Concept with real-time multi-sensor telemetry simulation, ML anomaly classification, and cryptographic SHA-256 evidence chain verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
