@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CHECKPOINTS,
   INDUSTRY_PROFILES,
@@ -27,19 +27,22 @@ import {
   TelemetryPoint
 } from './types';
 import { Header } from './components/Header';
-import { DemoControls } from './components/DemoControls';
-import { TelemetryCards } from './components/TelemetryCards';
-import { TelemetryCharts } from './components/TelemetryCharts';
-import { MultiSensorCorrelationView } from './components/MultiSensorCorrelationView';
-import { AiClassificationPanel } from './components/AiClassificationPanel';
-import { RouteMap } from './components/RouteMap';
-import { ChainOfCustodyTimeline } from './components/ChainOfCustodyTimeline';
+import { NavigationBar, NavigationTab } from './components/NavigationBar';
+import { OverviewSection } from './components/OverviewSection';
+import { LiveMonitoringSection } from './components/LiveMonitoringSection';
+import { IncidentHistorySection } from './components/IncidentHistorySection';
+import { SyntheticTestingSection } from './components/SyntheticTestingSection';
+import { AiEvaluationSection } from './components/AiEvaluationSection';
+import { EvidenceIntegritySection } from './components/EvidenceIntegritySection';
 import { TamperDemoModal } from './components/TamperDemoModal';
 import { IncidentReplayModal } from './components/IncidentReplayModal';
 import { ModelEvaluationModal } from './components/ModelEvaluationModal';
 import { PrototypeStatusModal } from './components/PrototypeStatusModal';
 
 export default function App() {
+  // Navigation State
+  const [activeTab, setActiveTab] = useState<NavigationTab>('overview');
+
   // State: Packages & Active Package
   const [packages, setPackages] = useState<PackageData[]>(INITIAL_PACKAGES);
   const [activePackageId, setActivePackageId] = useState<string>('SP-001');
@@ -187,7 +190,6 @@ export default function App() {
           tilt = 68.0 + (Math.random() - 0.5) * 3;
           detected = 'HANDLING_ANOMALY';
         } else if (isImpactState && last.isSpikePoint) {
-          // Decay after shock
           az = 1.04;
           tilt = 42.0;
           detected = 'IMPACT';
@@ -270,7 +272,6 @@ export default function App() {
 
     if (scenario === 'IMPACT') {
       setIsSimulatingSequence(true);
-      // Realistic Multi-Point Shock Sequence: 1.01g -> 1.03g -> 1.07g -> 2.4g -> 5.2g -> 3.1g -> 1.8g -> 1.2g
       const sequenceMags = [1.01, 1.03, 1.07, 2.4, 5.2, 3.1, 1.8, 1.2];
       const sequenceTilts = [2.2, 4.1, 8.5, 22.0, 52.0, 46.0, 43.0, 42.0];
 
@@ -280,7 +281,6 @@ export default function App() {
           clearInterval(shockInterval);
           setIsSimulatingSequence(false);
 
-          // Append Cryptographic Evidence Record for the Impact Event
           const nowEpoch = Date.now();
           const timeStr = new Date(nowEpoch).toLocaleTimeString([], { hour12: false });
           const prevEvidence = telemetryStore[activePackageId]?.evidenceRecords || [];
@@ -325,7 +325,6 @@ export default function App() {
             };
           });
 
-          // Update Package Status
           setPackages((prev) =>
             prev.map((p) =>
               p.id === activePackageId
@@ -537,14 +536,11 @@ export default function App() {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-[#05070a] text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white relative overflow-x-hidden">
-      {/* Frosted Glass Ambient Lighting Glows */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[350px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed top-1/3 right-10 w-[500px] h-[350px] bg-indigo-600/8 rounded-full blur-[140px] pointer-events-none -z-10"></div>
-      <div className="fixed bottom-10 left-10 w-[500px] h-[350px] bg-cyan-500/8 rounded-full blur-[140px] pointer-events-none -z-10"></div>
+  const incidentRecords = evidenceRecords.filter((r) => r.eventType !== 'NORMAL');
 
-      {/* Header & Global Status */}
+  return (
+    <div className="min-h-screen bg-[#06090e] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* Top Header */}
       <Header
         currentPackage={currentPackage}
         packages={packages}
@@ -552,94 +548,110 @@ export default function App() {
         selectedProfile={selectedProfile}
         profiles={INDUSTRY_PROFILES}
         onSelectProfile={handleSelectProfile}
-        onOpenModelModal={() => setIsModelModalOpen(true)}
-        onOpenReplayModal={() => setIsReplayModalOpen(true)}
-        onOpenStatusModal={() => setIsStatusModalOpen(true)}
-        onOpenTamperModal={() => setIsTamperModalOpen(true)}
         chainIntact={verificationResult.chainIntact}
         totalEvidenceCount={evidenceRecords.length}
+        onOpenStatusModal={() => setIsStatusModalOpen(true)}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {/* Interactive Scenario Demo Controls Deck */}
-        <DemoControls
-          onTriggerScenario={handleTriggerScenario}
-          isSimulatingSequence={isSimulatingSequence}
-          activeScenario={activeScenario}
-          isPaused={isPaused}
-          onTogglePause={() => setIsPaused(!isPaused)}
-          onOpenReplayModal={() => setIsReplayModalOpen(true)}
-          onOpenTamperModal={() => setIsTamperModalOpen(true)}
-        />
+      {/* Clean Navigation Bar */}
+      <NavigationBar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        incidentCount={incidentRecords.length}
+        chainIntact={verificationResult.chainIntact}
+      />
 
-        {/* Live 5-Sensor Telemetry Cards */}
-        <TelemetryCards
-          latestPoint={latestPoint}
-          profile={selectedProfile}
-          peakAcc={peakAcc}
-        />
+      {/* Primary Workspace Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {activeTab === 'overview' && (
+          <OverviewSection
+            currentPackage={currentPackage}
+            selectedProfile={selectedProfile}
+            latestPoint={latestPoint}
+            peakAcc={peakAcc}
+            verificationResult={verificationResult}
+            evidenceRecords={evidenceRecords}
+            checkpoints={CHECKPOINTS}
+            onNavigateToMonitoring={() => setActiveTab('live_monitoring')}
+            onNavigateToIncidents={() => setActiveTab('incident_history')}
+            onNavigateToIntegrity={() => setActiveTab('evidence_integrity')}
+          />
+        )}
 
-        {/* Real-time Telemetry Charts */}
-        <TelemetryCharts
-          data={telemetryHistory}
-          profile={selectedProfile}
-        />
-
-        {/* Multi-Sensor Correlation & AI Classification Panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <MultiSensorCorrelationView correlation={correlationResult} />
-          <AiClassificationPanel
+        {activeTab === 'live_monitoring' && (
+          <LiveMonitoringSection
+            latestPoint={latestPoint}
+            telemetryHistory={telemetryHistory}
+            profile={selectedProfile}
+            peakAcc={peakAcc}
+            correlationResult={correlationResult}
             mlResult={mlResult}
             onOpenModelModal={() => setIsModelModalOpen(true)}
+            onTriggerScenario={handleTriggerScenario}
+            isSimulatingSequence={isSimulatingSequence}
+            activeScenario={activeScenario}
+            isPaused={isPaused}
+            onTogglePause={() => setIsPaused(!isPaused)}
+            onOpenTamperModal={() => setIsTamperModalOpen(true)}
           />
-        </div>
+        )}
 
-        {/* Route Map & Checkpoint Incident Pinpointing */}
-        <RouteMap
-          checkpoints={CHECKPOINTS}
-          currentPoint={latestPoint}
-          packageData={currentPackage}
-          incidentPoint={
-            currentPackage.status === 'INCIDENT_DETECTED' || currentPackage.status === 'TAMPERED'
-              ? {
-                  locationName: 'Transit Point 2 (Fremont Interchange)',
-                  timestamp: '11:47:03 AM',
-                  coordinates: '37.5485° N, 121.9886° W',
-                  eventType: mlResult.predictedClass,
-                  severity: currentPackage.riskLevel
-                }
-              : null
-          }
-        />
+        {activeTab === 'incident_history' && (
+          <IncidentHistorySection
+            evidenceRecords={evidenceRecords}
+            onOpenReplayModal={() => setIsReplayModalOpen(true)}
+            onNavigateToMonitoring={() => setActiveTab('live_monitoring')}
+          />
+        )}
 
-        {/* Cryptographic Chain of Custody & Evidence Ledger */}
-        <ChainOfCustodyTimeline
-          records={evidenceRecords}
-          verificationResult={verificationResult}
-          onOpenTamperModal={() => setIsTamperModalOpen(true)}
-        />
+        {activeTab === 'synthetic_testing' && (
+          <SyntheticTestingSection />
+        )}
+
+        {activeTab === 'ai_evaluation' && (
+          <AiEvaluationSection
+            evaluation={mlEvaluation}
+            latestMlResult={mlResult}
+            onOpenModelModal={() => setIsModelModalOpen(true)}
+            onNavigateToSyntheticTesting={() => setActiveTab('synthetic_testing')}
+          />
+        )}
+
+        {activeTab === 'evidence_integrity' && (
+          <EvidenceIntegritySection
+            evidenceRecords={evidenceRecords}
+            verificationResult={verificationResult}
+            onOpenTamperModal={() => setIsTamperModalOpen(true)}
+            onRestoreChain={handleRestoreChain}
+          />
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/60 bg-slate-900/40 backdrop-blur-xl py-4 text-xs font-mono text-slate-400">
+      {/* Enterprise Quiet Footer */}
+      <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-xs font-mono text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-blue-400 font-bold">SENTINELPACK</span>
-            <span className="text-slate-500">•</span>
+            <span className="text-blue-400 font-bold">SentinelPack</span>
+            <span className="text-slate-600">/</span>
             <span className="text-slate-400">Software Proof-of-Concept & Digital Twin</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-500 text-[11px]">
-            <span>CRYPTO-CHAIN: <strong className="text-emerald-400 font-mono">✓ INTACT</strong></span>
+
+          <div className="flex items-center gap-4 text-slate-400 text-[11px]">
+            <span>Ledger: <strong className={verificationResult.chainIntact ? 'text-emerald-400' : 'text-red-400'}>{verificationResult.chainIntact ? 'Intact' : 'Altered'}</strong></span>
             <span>•</span>
-            <span>MODEL ACCURACY: <strong className="text-slate-300 font-mono">99.2%</strong></span>
+            <span>Model: <strong className="text-slate-300">Random Forest ({(mlEvaluation.overallAccuracy * 100).toFixed(1)}% Acc)</strong></span>
             <span>•</span>
-            <span>LATENCY: <strong className="text-slate-300 font-mono">8.2ms</strong></span>
+            <button
+              onClick={() => setIsStatusModalOpen(true)}
+              className="text-slate-400 hover:text-slate-200 underline"
+            >
+              Hardware Roadmap
+            </button>
           </div>
         </div>
       </footer>
 
-      {/* Modals */}
+      {/* Interactive Modals */}
       <TamperDemoModal
         isOpen={isTamperModalOpen}
         onClose={() => setIsTamperModalOpen(false)}

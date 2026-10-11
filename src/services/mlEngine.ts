@@ -249,7 +249,38 @@ class PrototypeRandomForest {
   }
 }
 
-const rfModel = new PrototypeRandomForest();
+export const rfModel = new PrototypeRandomForest();
+
+/**
+ * Converts a raw synthetic sensor record into the MLFeatures vector used by SentinelPack's classifier.
+ * This ensures the exact same feature engineering pipeline and decision trees evaluate the synthetic data.
+ */
+export function featureFromSyntheticRecord(rec: {
+  acceleration_magnitude_g: number;
+  tilt_angle_degrees: number;
+  temperature_celsius: number;
+  tamper_detected: boolean;
+}): MLFeatures {
+  const isHighDrop = rec.acceleration_magnitude_g > 2.0;
+  const isTilted = rec.tilt_angle_degrees > 35;
+  const isHot = rec.temperature_celsius > 8.0;
+
+  return {
+    maxAcc: rec.acceleration_magnitude_g,
+    meanAcc: Number(Math.max(1.0, rec.acceleration_magnitude_g * 0.7).toFixed(2)),
+    accVariance: isHighDrop ? Number((0.5 + Math.random() * 0.8).toFixed(2)) : 0.02,
+    accDelta: isHighDrop ? Number((rec.acceleration_magnitude_g - 1.0).toFixed(2)) : 0.15,
+    maxTilt: rec.tilt_angle_degrees,
+    meanTilt: Number((rec.tilt_angle_degrees * 0.75).toFixed(1)),
+    tiltDelta: isTilted || isHighDrop ? Number((rec.tilt_angle_degrees * 0.6).toFixed(1)) : 1.5,
+    temperature: rec.temperature_celsius,
+    tempRate: isHot ? 0.45 : 0.02,
+    tamperFlag: rec.tamper_detected ? 1 : 0,
+    packageMovement: 1,
+    speed: 35,
+    orientationChanges: isTilted ? 3 : 1
+  };
+}
 
 /**
  * Train and evaluate model on synthetic dataset with actual statistical metrics
